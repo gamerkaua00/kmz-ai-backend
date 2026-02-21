@@ -26,7 +26,7 @@ def ask_ai():
     if any(word in user_message_lower for word in palavras_chave):
         try:
             termo_busca = user_message_lower
-            remover = ["pesquise e resuma sobre a", "pesquise e resuma sobre", "pesquise sobre", "pesquise", "resuma", "google", "busque por"]
+            remover = ["pesquise e resuma sobre a", "pesquise", "resuma", "google", "busque por"]
             for r in remover:
                 termo_busca = termo_busca.replace(r, "")
             
@@ -34,17 +34,17 @@ def ask_ai():
             if resultados:
                 textos_limpos = [f"- {r['body'][:200].replace('\n', ' ')}..." for r in resultados]
                 contexto_web = "--- INFORMAÇÕES RECENTES DA WEB ---\n" + "\n".join(textos_limpos) + "\n-----------------------------------\n\n"
-        except Exception as e:
-            print(f"Erro na busca: {e}")
+        except Exception:
             contexto_web = "" 
 
-    system_prompt = """INSTITUCIONAL: Você é o KMZ AI, um assistente de engenharia e desenvolvimento criado pela KMZ ENTERPRISE.
-DIRETRIZES:
-1. CÁLCULOS: Para eletrônica ou matemática, explique o passo a passo de forma estrita e dê o resultado exato.
-2. PROGRAMAÇÃO: Entregue a solução de código pronta.
-3. IMAGENS: Se o usuário pedir para gerar uma imagem, responda APENAS com este formato Markdown: ![Descricao](https://image.pollinations.ai/prompt/descricao-da-imagem-em-ingles-com-hifens)
-4. ATUALIDADES: Use as 'INFORMAÇÕES DA WEB' fornecidas para embasar seu resumo.
-5. TOM: Profissional, técnico e direto."""
+    # O PROMPT BLINDADO
+    system_prompt = """INSTITUCIONAL: Você é o KMZ AI, assistente de engenharia criado pela KMZ ENTERPRISE.
+DIRETRIZES TÉCNICAS E REGRAS RÍGIDAS:
+1. CÁLCULOS: Explique o passo a passo estrito e dê o resultado exato.
+2. PROGRAMAÇÃO WEB: Se criar um site, separe claramente os blocos de código em HTML, CSS e JavaScript.
+3. REGRA DO PDF: Se o usuário pedir para 'gerar um PDF', NUNCA escreva scripts em Python ou qualquer linguagem. Responda APENAS: "Para salvar este conteúdo, clique no botão **📥 Baixar PDF Oficial** no canto inferior da mensagem." e forneça o conteúdo normalmente em texto.
+4. IMAGENS: Responda APENAS com este formato Markdown: ![Descricao](https://image.pollinations.ai/prompt/descricao-em-ingles)
+5. TOM: Corporativo, técnico e em Português do Brasil."""
 
     mensagem_final = contexto_web + "Entrada do usuário: " + user_message
 
