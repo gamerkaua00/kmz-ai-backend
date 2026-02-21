@@ -10,7 +10,7 @@ CORS(app)
 
 client = Groq(api_key=os.environ.get("GROQ_API_KEY"))
 
-# Sistema de Cache para economizar 100% dos tokens em perguntas repetidas
+# Sistema de Cache
 historico_cache = {}
 
 @app.route('/ask', methods=['POST'])
@@ -23,7 +23,6 @@ def ask_ai():
         return jsonify({"response": "⚡ *[Resposta Rápida via Cache KMZ]* ⚡\n\n" + historico_cache[user_message_lower]})
 
     contexto_web = ""
-    # Gatilhos de pesquisa ativados
     palavras_chave_web = ["notícia", "notícias", "hoje", "últimas", "conflito", "pesquise", "google", "resuma", "procure", "feriado", "atual", "youtube", "vídeo", "2026"]
     
     if any(word in user_message_lower for word in palavras_chave_web):
@@ -33,16 +32,14 @@ def ask_ai():
             for r in remover:
                 termo_busca = termo_busca.replace(r, "")
             
-            ddgs = DDGS()
+            # ADICIONADO TIMEOUT DE 10 SEGUNDOS (O Escudo Anti-Travamento)
+            ddgs = DDGS(timeout=10)
             textos_limpos = []
             
-            # Busca Web Padrão
             resultados = ddgs.text(termo_busca.strip(), region='br-pt', max_results=3)
             if resultados:
-                # Limita a 200 caracteres por site para economizar tokens da API Groq
                 textos_limpos.extend([f"- [WEB]: {r['body'][:200].replace(chr(10), ' ')}..." for r in resultados])
                 
-            # Busca de Vídeos (YouTube) se solicitado na frase
             if "youtube" in user_message_lower or "vídeo" in user_message_lower:
                 videos = ddgs.videos(termo_busca.strip(), region='br-pt', max_results=2)
                 if videos:
@@ -51,7 +48,7 @@ def ask_ai():
             if textos_limpos:
                 contexto_web = "--- DADOS DA WEB E YOUTUBE PARA EMBASAR A RESPOSTA ---\n" + "\n".join(textos_limpos) + "\n----------------------------------------------------\n\n"
         except Exception as e:
-            print("Erro na busca:", e)
+            print("Erro na busca (Timeout ou Bloqueio):", e)
             contexto_web = "" 
 
     data_atual = datetime.now().strftime("%d/%m/%Y")
@@ -61,12 +58,12 @@ CRIADOR: Você foi desenvolvido exclusivamente por Kauã Mazur dos Reis, CEO e f
 CONTEXTO: Hoje é {data_atual}. O ano é 2026. O usuário está em Campo Largo, PR.
 
 DIRETRIZES PARA ECONOMIA DE TOKENS E INTELIGÊNCIA:
-1. SEJA DIRETO E ORGANIZADO: Use tópicos. Responda de forma concisa. Sem enrolação.
+1. SEJA DIRETO E ORGANIZADO: Use tópicos. Responda de forma concisa.
 2. CÁLCULOS: Explique o passo a passo de forma exata.
 3. PROGRAMAÇÃO: Separe claramente os códigos HTML, CSS e JS.
-4. GATILHO DE PDF: Se o usuário pedir na frase para "gerar um PDF", "salvar em PDF" ou "colocar em PDF", adicione EXATAMENTE a tag [AUTO_PDF] no final da sua resposta. Nunca programe scripts Python para isso. A tag fará o sistema do usuário baixar o arquivo sozinho.
-5. PESQUISA: Baseie-se nas 'DADOS DA WEB E YOUTUBE' fornecidas. Se houver vídeos, liste-os de forma organizada.
-6. IMAGENS: Responda APENAS com este formato Markdown: ![Descricao](https://image.pollinations.ai/prompt/descricao-em-ingles)"""
+4. GATILHO DE PDF: Se o usuário pedir para "gerar um PDF", "salvar em PDF" ou "colocar em PDF", adicione EXATAMENTE a tag [AUTO_PDF] no final da sua resposta. A tag fará o sistema baixar o arquivo. NUNCA programe scripts Python para isso.
+5. PESQUISA: Baseie-se nas 'DADOS DA WEB E YOUTUBE' fornecidas. Se a pesquisa falhou ou não encontrou a data, diga a verdade diretamente.
+6. IMAGENS: Responda APENAS com formato Markdown: ![Descricao](https://image.pollinations.ai/prompt/descricao-em-ingles)"""
 
     mensagem_final = contexto_web + "Entrada do usuário: " + user_message
 
